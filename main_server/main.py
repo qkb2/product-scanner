@@ -1,0 +1,133 @@
+# main_server/main.py
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
+from uuid import uuid4
+import shutil
+import os
+from dotenv import load_dotenv
+
+from main_server.db import SessionLocal, engine, Base
+from models import Product, Incident, Device
+from classifier import classify_image
+from auth import get_current_device, api_key_header
+
+load_dotenv()
+
+SHARED_SECRET = os.getenv("SHARED_SECRET", "abc123")  # Store shared secret securely
+
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@app.post("/register_device")
+def register_device(
+    device_name: str = Form(...),
+    shared_secret: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    if (
+        shared_secret != SHARED_SECRET
+    ):  # You can replace this with an env var or secret manager
+        raise HTTPException(status_code=403, detail="Invalid shared secret")
+
+    device = Device(name=device_name, api_key=str(uuid4()))
+    db.add(device)
+    db.commit()
+    db.refresh(device)
+    return {"device_id": device.id, "api_key": device.api_key}
+
+
+@app.post("/validate")
+def validate(
+    image: UploadFile = File(...),
+    product_name: str = Form(...),
+    weight: float = Form(...),
+    db: Session = Depends(get_db),
+    device: Device = Depends(get_current_device),
+):
+    product = db.query(Product).filter_by(name=product_name).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # Save image
+    img_path = os.path.join(UPLOAD_DIR, image.filename)
+    with open(img_path, "wb") as buffer:
+        shutil.copyfileobj(image.file, buffer)
+
+    # Classify
+    predicted_name = classify_image(img_path)
+    is_valid = (predicted_name == product.name) and (
+        product.weight - 15 <= weight <= product.weight + 15
+    )
+
+    incident = Incident(
+        product_id=product.id,
+        device_id=device.id,
+        weight=weight,
+        image_path=img_path,
+        result="correct" if is_valid else "incorrect",
+    )
+    db.add(incident)
+    db.commit()
+
+    return {"result": incident.result}
+
+
+@app.get("/incidents/last")
+def last_incidents(count: int = 10, db: Session = Depends(get_db)):
+    incidents = (
+        db.query(Incident).order_by(Incident.timestamp.desc()).limit(count).all()
+    )
+    return [
+        {
+            "product": i.product.name,
+            "weight": i.weight,
+            "result": i.result,
+            "timestamp": i.timestamp,
+            "device": i.device.name if i.device else None,
+        }
+        for i in incidents
+    ]
+
+
+@app.post("/add_products")
+def add_product(
+    name: str = Form(...), weight: float = Form(...), db: Session = Depends(get_db)
+):
+    existing = db.query(Product).filter_by(name=name).first()
+    if existing:
+        existing.weight = weight
+        db.commit()
+        return {"message": "Updated"}
+    p = Product(name=name, weight=weight)
+    db.add(p)
+    db.commit()
+    return {"message": "Added"}
+
+
+@app.get("/get_products")
+def get_products(db: Session = Depends(get_db)):
+    products = db.query(Product).all()
+    return [{"name": p.name, "weight": p.weight} for p in products]
