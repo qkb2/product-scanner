@@ -25,7 +25,7 @@ MAIN_SERVER_URL = os.getenv(
 SHARED_SECRET = os.getenv("SHARED_SECRET", "abc123")  # Store shared secret securely
 DEVICE_NAME = os.getenv("SHARED_SECRET", "rpi1")  # Store shared secret securely
 API_KEY = ""
-
+MAIN_SERVER_CERT = os.getenv("MAIN_SERVER_CERT", False)
 
 # --- FASTAPI SETUP ---
 app = FastAPI()
@@ -67,7 +67,6 @@ async def index():
 
     <button onclick="sendProduct()">Send to Server</button>
     <p id="response"></p>
-    <button onclick="tare()">Tare (Zero Scale)</button>
 
     <script>
         async function getWeight() {
@@ -122,16 +121,6 @@ async def index():
                 ? "✅ OK"
                 : "❌ Not OK, wait for staff";
         }
-
-        async function tare() {
-            const response = await fetch('/tare', { method: 'POST' });
-            const data = await response.json();
-            if (data.status === "success") {
-                alert("✅ Scale tared!");
-            } else {
-                alert("❌ Error during taring: " + data.details);
-            }
-        }
     </script>
 </body>
 </html>
@@ -176,21 +165,10 @@ async def send_product(request: Request):
             data=payload,
             files=files,
             headers={"Authorization": f"Bearer {API_KEY}"},
+            verify=MAIN_SERVER_CERT  # Can be path or False
         )
         server_response = response.json()
         return {"status": server_response.get("status", "error")}
-    except Exception as e:
-        return {"status": "error", "details": str(e)}
-
-
-@app.post("/tare")
-async def tare_scale():
-    global hx, lock
-    try:
-        with lock:
-            if hx.zero():
-                raise ValueError("Tare is unsuccessful.")
-        return {"status": "success"}
     except Exception as e:
         return {"status": "error", "details": str(e)}
 
@@ -246,6 +224,7 @@ def register():
     r = requests.post(
         f"{MAIN_SERVER_URL}/register_device",
         data={"device_name": DEVICE_NAME, "shared_secret": SHARED_SECRET},
+        verify=MAIN_SERVER_CERT
     )
     r.raise_for_status()
     data = r.json()

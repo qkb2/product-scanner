@@ -14,7 +14,7 @@ class Product(Base):
     __tablename__ = "products"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
-    weight = Column(Float, nullable=False)
+    weight = Column(Float(), nullable=False)
     incidents = relationship("Incident", back_populates="product")
 
 class Incident(Base):
@@ -22,7 +22,7 @@ class Incident(Base):
     id = Column(Integer, primary_key=True, index=True)
     product_id = Column(Integer, ForeignKey("products.id"))
     device_id = Column(Integer, ForeignKey("devices.id"))
-    weight = Column(Float)
+    weight = Column(Float())
     image_path = Column(String)
     result = Column(String)
     timestamp = Column(DateTime, default=datetime.utcnow)

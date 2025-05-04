@@ -72,7 +72,10 @@ def validate(
         raise HTTPException(status_code=404, detail="Product not found")
 
     # Save image
-    img_path = os.path.join(UPLOAD_DIR, image.filename)
+    if image.filename is not None:
+        img_path = os.path.join(UPLOAD_DIR, image.filename)
+    else:
+        HTTPException(status_code=400, detail="Image missing")
     with open(img_path, "wb") as buffer:
         shutil.copyfileobj(image.file, buffer)
 
@@ -81,6 +84,9 @@ def validate(
     is_valid = (predicted_name == product.name) and (
         product.weight - 15 <= weight <= product.weight + 15
     )
+    if not isinstance(is_valid, bool):
+        raise HTTPException(status_code=200, detail="Internal error")
+    is_valid = bool(is_valid)
 
     incident = Incident(
         product_id=product.id,
