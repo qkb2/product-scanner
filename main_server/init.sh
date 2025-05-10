@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Optional: activate virtual environment
-# source /path/to/venv/bin/activate
+source .venv/activate
 
 # Navigate to the directory of the script
 cd "$(dirname "$0")"

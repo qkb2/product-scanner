@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Activate Python virtual environment (optional, if you use one)
-# source /home/pi/venv/bin/activate
+source .venv/bin/activate
 
 # Navigate to your project directory
 cd "$(dirname "$0")"
