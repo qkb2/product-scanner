@@ -43,90 +43,6 @@ lock = Lock()
 hx = None
 
 
-# --- FRONTEND ROUTE ---
-@app.get("/", response_class=HTMLResponse)
-async def index():
-    return """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Product Weighing</title>
-</head>
-<body>
-    <h1>Weigh a Product</h1>
-    <p>Current weight: <span id="weight">0.0</span> g</p>
-    
-    <!-- Display list of products -->
-    <h2>Products List</h2>
-    <button onclick="fetchProducts()">Get Products</button>
-
-    <select id="product">
-        <!-- Product options will be populated here -->
-    </select>
-
-    <button onclick="sendProduct()">Send to Server</button>
-    <p id="response"></p>
-
-    <script>
-        async function getWeight() {
-            const response = await fetch('/weight');
-            const data = await response.json();
-            document.getElementById('weight').innerText = data.current_weight;
-        }
-        setInterval(getWeight, 1000);  // Update weight every second
-
-        // Fetch list of products from the edge server and update the dropdown
-        async function fetchProducts() {
-            const response = await fetch('/get_products');
-            const data = await response.json();
-            if (data.status && data.status === "error") {
-                alert("Error fetching products: " + data.details);
-                return;
-            }
-            
-            const productDropdown = document.getElementById('product');
-            productDropdown.innerHTML = "";  // Clear the existing options
-
-            // Add a default "Select" option
-            const defaultOption = document.createElement("option");
-            defaultOption.text = "Select a product";
-            defaultOption.value = "";
-            productDropdown.appendChild(defaultOption);
-
-            // Add products as options
-            data.products.forEach(product => {
-                const option = document.createElement("option");
-                option.value = product.name;
-                option.text = `${product.name} - ${product.weight} g`;
-                productDropdown.appendChild(option);
-            });
-        }
-
-        // Call fetchProducts initially when the page loads
-        window.onload = fetchProducts;
-
-        // Automatically update products list every 10 minutes
-        setInterval(fetchProducts, 1000 * 60 * 10);
-
-        async function sendProduct() {
-            const product = document.getElementById('product').value;
-            const response = await fetch('/send_product', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ product: product })
-            });
-            const data = await response.json();
-            document.getElementById('response').innerText = data.status === "correct" 
-                ? "✅ OK"
-                : "❌ Not OK, wait for staff";
-        }
-    </script>
-</body>
-</html>
-    """
-
-
 # --- WEIGHT API ROUTE ---
 @app.get("/weight")
 async def get_weight():
@@ -177,10 +93,10 @@ async def send_product(request: Request):
 def run_scale(
     x0: int = 10, x1: int = 393600, print_values: bool = False, calibrate: bool = False
 ) -> None:
-    GPIO.setmode(GPIO.BCM)
-    tare_btn_pin = 26
+    # GPIO.setmode(GPIO.BCM)
+    # tare_btn_pin = 26
     known_weight_grams = 227
-    GPIO.setup(tare_btn_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    # GPIO.setup(tare_btn_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
     global hx
     hx = HX711(dout_pin=5, pd_sck_pin=6)

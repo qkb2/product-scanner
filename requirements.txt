@@ -1,8 +1,0 @@
-fastapi
-uvicorn
-requests
-Pillow
-# RPi.GPIO
-# hx711
-python-dotenv
-SQLAlchemy
