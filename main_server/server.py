@@ -80,8 +80,10 @@ def validate(
         shutil.copyfileobj(image.file, buffer)
 
     # Classify
-    predicted_name = classify_image(img_path)
-    is_valid = (predicted_name == product.name) and (
+    predicted_id = classify_image(img_path)
+    predicted_label = db.query(Product).filter_by(model_id=predicted_id).first()
+    
+    is_valid = (predicted_label == product.name) and (
         product.weight - 15 <= weight <= product.weight + 15
     )
     if not isinstance(is_valid, bool):
@@ -118,16 +120,17 @@ def last_incidents(count: int = 10, db: Session = Depends(get_db)):
     ]
 
 
-@app.post("/add_products")
+@app.post("/add_product")
 def add_product(
-    name: str = Form(...), weight: float = Form(...), db: Session = Depends(get_db)
+    name: str = Form(...), weight: float = Form(...), model_id: int = Form(...), db: Session = Depends(get_db)
 ):
     existing = db.query(Product).filter_by(name=name).first()
     if existing:
         existing.weight = weight
+        existing.model_id = model_id
         db.commit()
         return {"message": "Updated"}
-    p = Product(name=name, weight=weight)
+    p = Product(name=name, weight=weight, model_id=model_id)
     db.add(p)
     db.commit()
     return {"message": "Added"}

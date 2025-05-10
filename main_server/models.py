@@ -15,6 +15,7 @@ class Product(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
     weight = Column(Float(), nullable=False)
+    model_id = Column(Integer)
     incidents = relationship("Incident", back_populates="product")
 
 class Incident(Base):

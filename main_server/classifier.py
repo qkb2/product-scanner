@@ -28,7 +28,7 @@ transform = transforms.Compose(
 )
 
 
-def classify_image(image_path: str) -> str:
+def classify_image(image_path: str) -> int:
     if not os.path.exists(image_path):
         raise FileNotFoundError(f"Image not found: {image_path}")
 
@@ -38,4 +38,4 @@ def classify_image(image_path: str) -> str:
     with torch.no_grad():
         outputs = model(tensor)
         _, predicted = torch.max(outputs, 1)
-        return CLASS_NAMES[predicted.item()]
+        return int(predicted.item())
