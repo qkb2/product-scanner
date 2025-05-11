@@ -101,32 +101,32 @@ def run_scale(
 
     global hx
     hx = HX711(dout_pin=5, pd_sck_pin=6)
-    if hx.zero():
-        raise ValueError("Tare is unsuccessful.")
+    # if hx.zero():
+    #     raise ValueError("Tare is unsuccessful.")
 
-    if calibrate:
-        x0 = hx.get_data_mean()
-        if not x0:
-            raise ValueError("Invalid x0: ", x0)
+    # if calibrate:
+    #     x0 = hx.get_data_mean()
+    #     if not x0:
+    #         raise ValueError("Invalid x0: ", x0)
 
-        input("Put known weight on the scale and then press Enter: ")
-        x1 = hx.get_data_mean()
-        if not x1:
-            raise ValueError("Invalid x1: ", x1)
+    #     input("Put known weight on the scale and then press Enter: ")
+    #     x1 = hx.get_data_mean()
+    #     if not x1:
+    #         raise ValueError("Invalid x1: ", x1)
 
-    if print_values:
-        print("x0: ", x0)
-        print("x1: ", x1)
+    # if print_values:
+    #     print("x0: ", x0)
+    #     print("x1: ", x1)
 
     try:
         global current_weight
 
         while True:
             with lock:
-                reading = hx.get_data_mean(10)
+                reading = hx.get_raw_data_mean()
                 ratio1 = reading - x0
                 ratio2 = x1 - x0
-                ratio = ratio1 / ratio2
+                ratio = ratio1 / ratio2 if ratio2 != 0 else 0
 
                 current_weight = known_weight_grams * ratio
 
