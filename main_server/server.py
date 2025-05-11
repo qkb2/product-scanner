@@ -60,6 +60,25 @@ def register_device(
     return {"device_id": device.id, "api_key": device.api_key}
 
 
+@app.delete("/unregister_device")
+def unregister_device(
+    device_name: str = Form(...),
+    api_key: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    device = db.query(Device).filter(
+        Device.name == device_name,
+        Device.api_key == str(api_key)
+    ).first()
+
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found or invalid credentials")
+
+    db.delete(device)
+    db.commit()
+    return {"detail": "Device unregistered successfully"}
+
+
 @app.post("/validate")
 def validate(
     image: UploadFile = File(...),

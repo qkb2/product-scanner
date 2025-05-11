@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-const SERVER_URL = "http://127.0.0.1:8000"; // local server
+const SERVER_URL = "https://127.0.0.1:8000"; // local server
 
 function App() {
   const [incidents, setIncidents] = useState([]);
