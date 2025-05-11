@@ -26,6 +26,7 @@ MAIN_SERVER_URL = os.getenv(
 SHARED_SECRET = os.getenv("SHARED_SECRET", "abc123")  # Store shared secret securely
 DEVICE_NAME = os.getenv("SHARED_SECRET", "rpi1")  # Store shared secret securely
 API_KEY = ""
+API_KEY_FILE = "key.txt"
 MAIN_SERVER_CERT = os.getenv("MAIN_SERVER_CERT", False)
 
 # --- FASTAPI SETUP ---
@@ -137,6 +138,15 @@ def run_scale(
 
 
 def register():
+    global API_KEY
+
+    # Try to load saved API key
+    if os.path.exists(API_KEY_FILE):
+        with open(API_KEY_FILE, "r") as f:
+            API_KEY = f.read().strip()
+        print("Loaded API key from file.")
+        return
+
     print("Registering device...")
     r = requests.post(
         f"{MAIN_SERVER_URL}/register_device",
@@ -146,10 +156,35 @@ def register():
     r.raise_for_status()
     data = r.json()
     print("Registered. Device ID:", data["device_id"])
-    global API_KEY
     API_KEY = data["api_key"]
+
+    # Save API key to disk
+    with open(API_KEY_FILE, "w") as f:
+        f.write(API_KEY)
+
     return data
 
+
+def unregister():
+    print("Unregistering device...")
+    try:
+        r = requests.delete(
+            f"{MAIN_SERVER_URL}/unregister_device",
+            data={"device_name": DEVICE_NAME, "api_key": API_KEY},
+            verify=MAIN_SERVER_CERT
+        )
+        if r.status_code == 200:
+            print("Unregistered successfully.")
+        else:
+            print("Unregistration failed:", r.text)
+    except Exception as e:
+        print("Unregistration error:", e)
+        
+        
+@app.on_event("shutdown")
+def shutdown_event():
+    unregister()
+    
 
 # --- START SCALE THREAD ---
 register()
