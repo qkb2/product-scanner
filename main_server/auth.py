@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from main_server.db import SessionLocal
-from models import Device
+from main_server.models import Device
 
 def get_db():
     db = SessionLocal()

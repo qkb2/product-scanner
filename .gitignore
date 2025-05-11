@@ -1,1 +1,8 @@
 .venv
+*.pem
+node_modules
+__pycache__
+*.pyc
+*.pth
+*.db
+*.env

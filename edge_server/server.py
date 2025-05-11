@@ -9,6 +9,7 @@ from hx711 import HX711
 import time
 import requests
 from dotenv import load_dotenv
+import uvicorn
 
 # Load environment variables from a .env file
 load_dotenv()
@@ -155,3 +156,4 @@ register()
 thread = Thread(target=run_scale)
 thread.daemon = True
 thread.start()
+uvicorn.run(app=app, host="0.0.0.0", port=8000)

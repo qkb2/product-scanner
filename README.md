@@ -1,2 +1,1 @@
-# README.md
-# Dummy content
+# Product Scanner

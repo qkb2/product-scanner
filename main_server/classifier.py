@@ -5,13 +5,11 @@ from PIL import Image
 import os
 
 # Basic config
-CLASS_NAMES = ["apple", "banana", "water_bottle"]
-MODEL_PATH = "model.pt"  # fine-tuned ResNet model
+MODEL_PATH = "model.pth"  # fine-tuned ResNet model
 
 
 def load_model():
     model = models.resnet18(pretrained=False)
-    model.fc = torch.nn.Linear(model.fc.in_features, len(CLASS_NAMES))
     model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device("cpu")))
     model.eval()
     return model

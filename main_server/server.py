@@ -7,11 +7,12 @@ from uuid import uuid4
 import shutil
 import os
 from dotenv import load_dotenv
+import uvicorn
 
 from main_server.db import SessionLocal, engine, Base
-from models import Product, Incident, Device
-from classifier import classify_image
-from auth import get_current_device, api_key_header
+from main_server.models import Product, Incident, Device
+from main_server.classifier import classify_image
+from main_server.auth import get_current_device
 
 load_dotenv()
 
@@ -140,3 +141,6 @@ def add_product(
 def get_products(db: Session = Depends(get_db)):
     products = db.query(Product).all()
     return [{"name": p.name, "weight": p.weight} for p in products]
+
+
+uvicorn.run(app=app, host="0.0.0.0", port=8000, ssl_certfile=os.getenv("SSL_CERTFILE"), ssl_keyfile=os.getenv("SSL_KEYFILE"))
