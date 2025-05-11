@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from "react";
 
-const SERVER_URL = "http://<MAIN_SERVER_IP>:8000"; // Replace with actual IP or hostname
+const SERVER_URL = "http://127.0.0.1:8000"; // local server
 
 function App() {
   const [incidents, setIncidents] = useState([]);
   const [products, setProducts] = useState([]);
-  const [form, setForm] = useState({ name: "", weight: "", model_id: "" });
+  const [form, setForm] = useState({
+    name: "",
+    weight: "",
+    model_id: "",
+    shared_secret: "",
+  });
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -37,21 +42,30 @@ function App() {
 
   const handleAddProduct = async (e) => {
     e.preventDefault();
+    setMessage("Processing...");
+
     try {
       const formData = new FormData();
       formData.append("name", form.name);
       formData.append("weight", form.weight);
       formData.append("model_id", form.model_id);
+      formData.append("shared_secret", form.shared_secret);
 
       const res = await fetch(`${SERVER_URL}/add_product`, {
         method: "POST",
         body: formData,
       });
+
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || "Unknown error");
+      }
+
       setMessage(data.message);
       fetchProducts();
     } catch (err) {
-      console.error("Error adding product:", err);
+      setMessage(`Error: ${err.message}`);
     }
   };
 
@@ -104,6 +118,13 @@ function App() {
             placeholder="Model ID"
             value={form.model_id}
             onChange={(e) => setForm({ ...form, model_id: e.target.value })}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Shared Secret"
+            value={form.shared_secret}
+            onChange={(e) => setForm({ ...form, shared_secret: e.target.value })}
             required
           />
           <button type="submit">Submit</button>

@@ -123,8 +123,13 @@ def last_incidents(count: int = 10, db: Session = Depends(get_db)):
 
 @app.post("/add_product")
 def add_product(
-    name: str = Form(...), weight: float = Form(...), model_id: int = Form(...), db: Session = Depends(get_db)
+    name: str = Form(...), weight: float = Form(...), model_id: int = Form(...), db: Session = Depends(get_db), shared_secret: str = Form(...)
 ):
+    if (
+        shared_secret != SHARED_SECRET
+    ):  # You can replace this with an env var or secret manager
+        raise HTTPException(status_code=403, detail="Invalid shared secret")
+    
     existing = db.query(Product).filter_by(name=name).first()
     if existing:
         existing.weight = weight
