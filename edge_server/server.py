@@ -181,9 +181,9 @@ def unregister():
         print("Unregistration error:", e)
         
         
-@app.on_event("shutdown")
-def shutdown_event():
-    unregister()
+# @app.on_event("shutdown")
+# def shutdown_event():
+#     unregister()
     
 
 # --- START SCALE THREAD ---

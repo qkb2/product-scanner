@@ -12,6 +12,8 @@ function App() {
     shared_secret: "",
   });
   const [message, setMessage] = useState("");
+  const [resetSecret, setResetSecret] = useState("");
+
 
   useEffect(() => {
     fetchIncidents();
@@ -64,6 +66,31 @@ function App() {
 
       setMessage(data.message);
       fetchProducts();
+    } catch (err) {
+      setMessage(`Error: ${err.message}`);
+    }
+  };
+
+  const handleResetDevices = async (e) => {
+    e.preventDefault();
+    setMessage("Resetting devices...");
+
+    try {
+      const formData = new FormData();
+      formData.append("shared_secret", resetSecret);
+
+      const res = await fetch(`${SERVER_URL}/reset_devices`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || "Unknown error");
+      }
+
+      setMessage(data.message);
     } catch (err) {
       setMessage(`Error: ${err.message}`);
     }
@@ -131,6 +158,21 @@ function App() {
         </form>
         <p>{message}</p>
       </section>
+
+      <section>
+        <h2>Reset Devices</h2>
+        <form onSubmit={handleResetDevices}>
+          <input
+            type="password"
+            placeholder="Shared Secret"
+            value={resetSecret}
+            onChange={(e) => setResetSecret(e.target.value)}
+            required
+          />
+          <button type="submit">Reset Devices</button>
+        </form>
+      </section>
+
     </div>
   );
 }

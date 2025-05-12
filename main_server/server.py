@@ -167,4 +167,14 @@ def get_products(db: Session = Depends(get_db)):
     return [{"name": p.name, "weight": p.weight} for p in products]
 
 
+@app.get("/reset_devices")
+def reset_devices(db: Session = Depends(get_db), shared_secret: str = Form(...)):
+    if shared_secret != SHARED_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid shared secret")
+    
+    deleted = db.query(Device).delete()
+    db.commit()
+    return {"message": f"Reset successful. {deleted} devices removed."}
+
+
 uvicorn.run(app=app, host="0.0.0.0", port=8000, ssl_certfile=os.getenv("SSL_CERTFILE"), ssl_keyfile=os.getenv("SSL_KEYFILE"))
