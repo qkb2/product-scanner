@@ -10,6 +10,7 @@ import time
 import requests
 from dotenv import load_dotenv
 import uvicorn
+import statistics as st
 
 # Load environment variables from a .env file
 load_dotenv()
@@ -125,7 +126,8 @@ def run_scale(
         while True:
             with lock:
                 reading = hx.get_raw_data()
-                ratio1 = reading - x0
+                avg = int(st.mean(reading))
+                ratio1 = avg - x0
                 ratio2 = x1 - x0
                 ratio = ratio1 / ratio2 if ratio2 != 0 else 0
 
