@@ -1,5 +1,6 @@
-// src/App.js
 import React, { useEffect, useState } from "react";
+
+const BACKEND = process.env.REACT_APP_BACKEND;
 
 function App() {
   const [weight, setWeight] = useState(0.0);
@@ -7,10 +8,9 @@ function App() {
   const [selectedProduct, setSelectedProduct] = useState("");
   const [responseMsg, setResponseMsg] = useState("");
 
-  // Fetch current weight every second
   useEffect(() => {
     const interval = setInterval(() => {
-      fetch("/weight")
+      fetch(`${BACKEND}/weight`)
         .then(res => res.json())
         .then(data => setWeight(data.current_weight))
         .catch(console.error);
@@ -18,9 +18,8 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch product list
   const fetchProducts = () => {
-    fetch("/get_products")
+    fetch(`${BACKEND}/get_products`)
       .then(res => res.json())
       .then(data => {
         if (data.status === "error") {
@@ -34,18 +33,17 @@ function App() {
 
   useEffect(() => {
     fetchProducts();
-    const interval = setInterval(fetchProducts, 10 * 60 * 1000); // every 10 minutes
+    const interval = setInterval(fetchProducts, 10 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Send selected product
   const sendProduct = () => {
     if (!selectedProduct) {
       alert("Please select a product");
       return;
     }
 
-    fetch("/send_product", {
+    fetch(`${BACKEND}/send_product`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ product: selectedProduct }),
