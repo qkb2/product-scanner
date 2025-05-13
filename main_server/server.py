@@ -22,13 +22,22 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+origins = [
+    "http://localhost:3000",  # React default dev port
+    "http://127.0.0.1:3000",
+    "https://localhost:3000",
+    "https://127.0.0.1:3000",
+    "http://localhost:5173",  # Vite (optional)
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -167,7 +176,7 @@ def get_products(db: Session = Depends(get_db)):
     return [{"name": p.name, "weight": p.weight} for p in products]
 
 
-@app.get("/reset_devices")
+@app.post("/reset_devices")
 def reset_devices(db: Session = Depends(get_db), shared_secret: str = Form(...)):
     if shared_secret != SHARED_SECRET:
         raise HTTPException(status_code=403, detail="Invalid shared secret")

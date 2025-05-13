@@ -124,7 +124,7 @@ def run_scale(
 
         while True:
             with lock:
-                reading = hx.get_raw_data_mean()
+                reading = hx.get_raw_data()
                 ratio1 = reading - x0
                 ratio2 = x1 - x0
                 ratio = ratio1 / ratio2 if ratio2 != 0 else 0
