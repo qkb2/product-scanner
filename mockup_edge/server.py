@@ -50,7 +50,7 @@ async def send_product(request: Request):
     product_name = data.get("product", "unknown")
 
     # MOCKED: Use existing static image
-    photo_path = "/tmp/product.jpg"
+    photo_path = "image.jpg"
     if not os.path.exists(photo_path):
         return {"status": "error", "details": "Image not found at /tmp/product.jpg"}
 

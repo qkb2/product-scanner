@@ -8,3 +8,7 @@ __pycache__
 *.env
 certs
 *.txt
+*.jpg
+*.jpeg
+*.png
+tmp/*
