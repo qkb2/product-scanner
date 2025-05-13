@@ -18,6 +18,7 @@ load_dotenv()
 # --- CONFIG ---
 origins = [
     "http://localhost",
+    "http://localhost:3000",
     "http://localhost:8000",
 ]
 
@@ -94,11 +95,11 @@ async def send_product(request: Request):
 
 # --- SCALE READING THREAD ---
 def run_scale(
-    x0: int = 10, x1: int = 393600, print_values: bool = False, calibrate: bool = False
+    x0: int = -837_500, x1: int = 84_500, print_values: bool = False, calibrate: bool = False
 ) -> None:
     # GPIO.setmode(GPIO.BCM)
     # tare_btn_pin = 26
-    known_weight_grams = 227
+    mw = 500
     # GPIO.setup(tare_btn_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
     global hx
@@ -126,14 +127,13 @@ def run_scale(
         while True:
             with lock:
                 reading = hx.get_raw_data()
-                avg = int(st.mean(reading))
-                ratio1 = avg - x0
-                ratio2 = x1 - x0
-                ratio = ratio1 / ratio2 if ratio2 != 0 else 0
-
-                current_weight = known_weight_grams * ratio
+                avg = st.mean(reading)
+                
+                gain = mw / (x1 - x0)
+                current_weight = gain * (avg - x0)
 
             time.sleep(0.2)
+            # print(current_weight)
 
     except (KeyboardInterrupt, SystemExit):
         GPIO.cleanup()
