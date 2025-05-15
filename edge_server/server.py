@@ -85,7 +85,7 @@ async def send_product(request: Request):
             data=payload,
             files=files,
             headers={"Authorization": f"Bearer {API_KEY}"},
-            verify=MAIN_SERVER_CERT  # Can be path or False
+            verify=MAIN_SERVER_CERT,  # Can be path or False
         )
         server_response = response.json()
         return {"status": server_response.get("status", "error")}
@@ -93,9 +93,27 @@ async def send_product(request: Request):
         return {"status": "error", "details": str(e)}
 
 
+@app.get("/get_products")
+async def get_products():
+    try:
+        response = requests.get(
+            f"{MAIN_SERVER_URL}/get_products",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+            verify=MAIN_SERVER_CERT,
+        )
+        response.raise_for_status()
+        data = response.json()
+        return {"status": "ok", "products": data}
+    except Exception as e:
+        return {"status": "error", "details": str(e)}
+
+
 # --- SCALE READING THREAD ---
 def run_scale(
-    x0: int = -837_500, x1: int = 84_500, print_values: bool = False, calibrate: bool = False
+    x0: int = -837_500,
+    x1: int = 84_500,
+    print_values: bool = False,
+    calibrate: bool = False,
 ) -> None:
     # GPIO.setmode(GPIO.BCM)
     # tare_btn_pin = 26
@@ -128,7 +146,7 @@ def run_scale(
             with lock:
                 reading = hx.get_raw_data()
                 avg = st.mean(reading)
-                
+
                 gain = mw / (x1 - x0)
                 current_weight = gain * (avg - x0)
 
@@ -153,7 +171,7 @@ def register():
     r = requests.post(
         f"{MAIN_SERVER_URL}/register_device",
         data={"device_name": DEVICE_NAME, "shared_secret": SHARED_SECRET},
-        verify=MAIN_SERVER_CERT
+        verify=MAIN_SERVER_CERT,
     )
     r.raise_for_status()
     data = r.json()
@@ -173,7 +191,7 @@ def unregister():
         r = requests.delete(
             f"{MAIN_SERVER_URL}/unregister_device",
             data={"device_name": DEVICE_NAME, "api_key": API_KEY},
-            verify=MAIN_SERVER_CERT
+            verify=MAIN_SERVER_CERT,
         )
         if r.status_code == 200:
             print("Unregistered successfully.")
@@ -181,12 +199,12 @@ def unregister():
             print("Unregistration failed:", r.text)
     except Exception as e:
         print("Unregistration error:", e)
-        
-        
+
+
 # @app.on_event("shutdown")
 # def shutdown_event():
 #     unregister()
-    
+
 
 # --- START SCALE THREAD ---
 register()

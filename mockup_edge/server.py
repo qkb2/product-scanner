@@ -12,12 +12,17 @@ load_dotenv()
 
 origins = [
     "http://localhost",
+    "http://localhost:3000",
     "http://localhost:8000",
 ]
 
-MAIN_SERVER_URL = os.getenv("MAIN_SERVER_URL", "https://your-main-server-ip:8000/verify_product")
+MAIN_SERVER_URL = os.getenv(
+    "MAIN_SERVER_URL", "https://your-main-server-ip:8000/verify_product"
+)
 SHARED_SECRET = os.getenv("SHARED_SECRET", "abc123")
-DEVICE_NAME = os.getenv("DEVICE_NAME", "rpi1")  # NOTE: was incorrectly assigned to SHARED_SECRET earlier
+DEVICE_NAME = os.getenv(
+    "DEVICE_NAME", "rpi1"
+)  # NOTE: was incorrectly assigned to SHARED_SECRET earlier
 API_KEY = ""
 API_KEY_FILE = "key.txt"
 MAIN_SERVER_CERT = os.getenv("MAIN_SERVER_CERT", False)
@@ -38,6 +43,7 @@ lock = Lock()
 
 # --- API ENDPOINTS ---
 
+
 @app.get("/weight")
 async def get_weight():
     return {"current_weight": round(current_weight, 1)}
@@ -47,30 +53,54 @@ async def get_weight():
 async def send_product(request: Request):
     global current_weight
     data = await request.json()
-    product_name = data.get("product", "unknown")
+    product_id = data.get("product_id", "unknown")
+    print(data)
 
-    # MOCKED: Use existing static image
     photo_path = "image.jpg"
     if not os.path.exists(photo_path):
-        return {"status": "error", "details": "Image not found at /tmp/product.jpg"}
+        return {"status": "error", "details": "Image not found"}
 
-    files = {"image": open(photo_path, "rb")}
-    payload = {
-        "weight": round(current_weight, 1),
-        "product": product_name,
-        "rpi_id": DEVICE_NAME,
-    }
+    with open(photo_path, "rb") as img_file:
+        files = {
+            "image": ("image.jpg", img_file, "image/jpeg"),
+        }
+        data = {
+            "product_id": product_id,
+            "weight": str(round(current_weight, 1)),
+        }
 
+        print(data)
+
+        try:
+            print("sending request")
+            response = requests.post(
+                f"{MAIN_SERVER_URL}/validate",
+                files=files,
+                data=data,
+                headers={"Authorization": f"Bearer {API_KEY}", "api-key": API_KEY},
+                verify=MAIN_SERVER_CERT,
+            )
+            response.raise_for_status()
+            data = response.json()
+            print(data)
+            return {"status": data.get("result", "error")}
+        except requests.exceptions.HTTPError as e:
+            print(e.response.text)
+            return {"status": "error", "details": str(e)}
+
+
+@app.get("/get_products")
+async def get_products():
     try:
-        response = requests.post(
-            MAIN_SERVER_URL,
-            data=payload,
-            files=files,
+        response = requests.get(
+            f"{MAIN_SERVER_URL}/get_products",
             headers={"Authorization": f"Bearer {API_KEY}"},
-            verify=MAIN_SERVER_CERT
+            verify=MAIN_SERVER_CERT,
         )
-        server_response = response.json()
-        return {"status": server_response.get("status", "error")}
+        response.raise_for_status()
+        data = response.json()
+        return {"status": "ok", "products": data}
+
     except Exception as e:
         return {"status": "error", "details": str(e)}
 
@@ -89,7 +119,7 @@ def register():
     r = requests.post(
         f"{MAIN_SERVER_URL}/register_device",
         data={"device_name": DEVICE_NAME, "shared_secret": SHARED_SECRET},
-        verify=MAIN_SERVER_CERT
+        verify=MAIN_SERVER_CERT,
     )
     r.raise_for_status()
     data = r.json()
@@ -103,20 +133,20 @@ def register():
     return data
 
 
-@app.on_event("shutdown")
-def shutdown_event():
-    try:
-        r = requests.delete(
-            f"{MAIN_SERVER_URL}/unregister_device",
-            data={"device_name": DEVICE_NAME, "api_key": API_KEY},
-            verify=MAIN_SERVER_CERT
-        )
-        if r.status_code == 200:
-            print("Unregistered successfully.")
-        else:
-            print("Unregistration failed:", r.text)
-    except Exception as e:
-        print("Unregistration error:", e)
+# @app.on_event("shutdown")
+# def shutdown_event():
+#     try:
+#         r = requests.delete(
+#             f"{MAIN_SERVER_URL}/unregister_device",
+#             data={"device_name": DEVICE_NAME, "api_key": API_KEY},
+#             verify=MAIN_SERVER_CERT
+#         )
+#         if r.status_code == 200:
+#             print("Unregistered successfully.")
+#         else:
+#             print("Unregistration failed:", r.text)
+#     except Exception as e:
+#         print("Unregistration error:", e)
 
 
 # --- MOCKED SENSOR THREAD (not strictly needed for static weight, included for realism) ---

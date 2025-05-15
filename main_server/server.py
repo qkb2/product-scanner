@@ -91,12 +91,12 @@ def unregister_device(
 @app.post("/validate")
 def validate(
     image: UploadFile = File(...),
-    product_name: str = Form(...),
+    product_id: int = Form(...),
     weight: float = Form(...),
     db: Session = Depends(get_db),
     device: Device = Depends(get_current_device),
 ):
-    product = db.query(Product).filter_by(name=product_name).first()
+    product = db.query(Product).filter_by(id=product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
@@ -112,12 +112,16 @@ def validate(
     predicted_id = classify_image(img_path)
     predicted_label = db.query(Product).filter_by(model_id=predicted_id).first()
     
-    is_valid = (predicted_label == product.name) and (
+    print(f"Predicted id: {predicted_id} with label {predicted_label.name}")
+    
+    is_valid = (predicted_id == product.model_id) and (
         product.weight - 15 <= weight <= product.weight + 15
     )
     if not isinstance(is_valid, bool):
         raise HTTPException(status_code=200, detail="Internal error")
     is_valid = bool(is_valid)
+    
+    print(f"Is valid: {is_valid}")
 
     incident = Incident(
         product_id=product.id,
@@ -173,7 +177,7 @@ def add_product(
 @app.get("/get_products")
 def get_products(db: Session = Depends(get_db)):
     products = db.query(Product).all()
-    return [{"name": p.name, "weight": p.weight} for p in products]
+    return [{"id": p.id, "name": p.name, "weight": p.weight} for p in products]
 
 
 @app.post("/reset_devices")

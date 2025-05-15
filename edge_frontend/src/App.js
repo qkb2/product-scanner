@@ -5,7 +5,7 @@ const BACKEND = process.env.REACT_APP_BACKEND;
 function App() {
   const [weight, setWeight] = useState(0.0);
   const [products, setProducts] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState("");
+  const [selectedProductId, setSelectedProductId] = useState("");
   const [responseMsg, setResponseMsg] = useState("");
 
   useEffect(() => {
@@ -38,7 +38,7 @@ function App() {
   }, []);
 
   const sendProduct = () => {
-    if (!selectedProduct) {
+    if (!selectedProductId) {
       alert("Please select a product");
       return;
     }
@@ -46,7 +46,7 @@ function App() {
     fetch(`${BACKEND}/send_product`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ product: selectedProduct }),
+      body: JSON.stringify({ product_id: selectedProductId }),
     })
       .then(res => res.json())
       .then(data => {
@@ -70,10 +70,13 @@ function App() {
       <button onClick={fetchProducts}>Get Products</button>
       <br /><br />
 
-      <select value={selectedProduct} onChange={e => setSelectedProduct(e.target.value)}>
+      <select
+        value={selectedProductId}
+        onChange={e => setSelectedProductId(e.target.value)}
+      >
         <option value="">Select a product</option>
-        {products.map((product, index) => (
-          <option key={index} value={product.name}>
+        {products.map((product) => (
+          <option key={product.id} value={product.id}>
             {product.name} - {product.weight} g
           </option>
         ))}
