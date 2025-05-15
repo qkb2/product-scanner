@@ -68,29 +68,37 @@ def take_photo(filename: str = "/tmp/product.jpg") -> str:
 async def send_product(request: Request):
     global current_weight
     data = await request.json()
-    product_name = data.get("product")
+    product_id = data.get("product_id", "unknown")
 
     photo_path = take_photo()
 
-    files = {"image": open(photo_path, "rb")}
-    payload = {
-        "weight": abs(round(current_weight, 1)),
-        "product": product_name,
-        "rpi_id": DEVICE_NAME,
-    }
+    with open(photo_path, "rb") as img_file:
+        files = {
+            "image": ("image.jpg", img_file, "image/jpeg"),
+        }
+        data = {
+            "product_id": product_id,
+            "weight": str(round(current_weight, 1)),
+        }
 
-    try:
-        response = requests.post(
-            MAIN_SERVER_URL,
-            data=payload,
-            files=files,
-            headers={"Authorization": f"Bearer {API_KEY}"},
-            verify=MAIN_SERVER_CERT,  # Can be path or False
-        )
-        server_response = response.json()
-        return {"status": server_response.get("status", "error")}
-    except Exception as e:
-        return {"status": "error", "details": str(e)}
+        print(data)
+
+        try:
+            print("sending request")
+            response = requests.post(
+                f"{MAIN_SERVER_URL}/validate",
+                files=files,
+                data=data,
+                headers={"Authorization": f"Bearer {API_KEY}", "api-key": API_KEY},
+                verify=MAIN_SERVER_CERT,
+            )
+            response.raise_for_status()
+            data = response.json()
+            print(data)
+            return {"status": data.get("result", "error")}
+        except requests.exceptions.HTTPError as e:
+            print(e.response.text)
+            return {"status": "error", "details": str(e)}
 
 
 @app.get("/get_products")
