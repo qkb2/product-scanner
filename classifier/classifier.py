@@ -5,12 +5,20 @@ from PIL import Image
 import os
 
 # Basic config
-MODEL_PATH = "model.pth"  # fine-tuned ResNet model
+MODEL_PATH = "model.pt"  # fine-tuned ResNet model
+VERSION_PATH = "v.txt"
+CURRENT_VERSION = "0"
 
 
 def load_model():
-    model = models.resnet18(pretrained=False)
-    model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device("cpu")))
+    try:
+        with open(VERSION_PATH, "r") as f:
+            global CURRENT_VERSION
+            CURRENT_VERSION = f.read().strip()
+    except Exception as e:
+        pass
+
+    model = torch.load(MODEL_PATH, map_location=torch.device("cpu"))
     model.eval()
     return model
 
@@ -37,3 +45,7 @@ def classify_image(image_path: str) -> int:
         outputs = model(tensor)
         _, predicted = torch.max(outputs, 1)
         return int(predicted.item())
+
+
+def get_version() -> str:
+    return CURRENT_VERSION

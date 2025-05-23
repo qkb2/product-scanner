@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 import subprocess
 from threading import Thread, Lock
 import RPi.GPIO as GPIO
@@ -11,6 +11,8 @@ import requests
 from dotenv import load_dotenv
 import uvicorn
 import statistics as st
+from classifier.classifier import classify_image, get_version
+
 
 # Load environment variables from a .env file
 load_dotenv()
@@ -71,34 +73,30 @@ async def send_product(request: Request):
     product_id = data.get("product_id", "unknown")
 
     photo_path = take_photo()
+    
+    pred_model_label = classify_image(photo_path)
+    data = {
+        "product_id": product_id,
+        "weight": str(round(current_weight, 1)),
+        "pred_model_label": pred_model_label
+    }
+    print(data)
 
-    with open(photo_path, "rb") as img_file:
-        files = {
-            "image": ("image.jpg", img_file, "image/jpeg"),
-        }
-        data = {
-            "product_id": product_id,
-            "weight": str(round(current_weight, 1)),
-        }
-
+    try:
+        print("sending request")
+        response = requests.post(
+            f"{MAIN_SERVER_URL}/validate",
+            data=data,
+            headers={"Authorization": f"Bearer {API_KEY}", "api-key": API_KEY},
+            verify=MAIN_SERVER_CERT,
+        )
+        response.raise_for_status()
+        data = response.json()
         print(data)
-
-        try:
-            print("sending request")
-            response = requests.post(
-                f"{MAIN_SERVER_URL}/validate",
-                files=files,
-                data=data,
-                headers={"Authorization": f"Bearer {API_KEY}", "api-key": API_KEY},
-                verify=MAIN_SERVER_CERT,
-            )
-            response.raise_for_status()
-            data = response.json()
-            print(data)
-            return {"status": data.get("result", "error")}
-        except requests.exceptions.HTTPError as e:
-            print(e.response.text)
-            return {"status": "error", "details": str(e)}
+        return {"status": data.get("result", "error")}
+    except requests.exceptions.HTTPError as e:
+        print(e.response.text)
+        return {"status": "error", "details": str(e)}
 
 
 @app.get("/get_products")
@@ -119,33 +117,12 @@ async def get_products():
 # --- SCALE READING THREAD ---
 def run_scale(
     x0: int = -837_500,
-    x1: int = 84_500,
-    print_values: bool = False,
-    calibrate: bool = False,
+    x1: int = 84_500
 ) -> None:
-    # GPIO.setmode(GPIO.BCM)
-    # tare_btn_pin = 26
     mw = 500
-    # GPIO.setup(tare_btn_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
     global hx
     hx = HX711(dout_pin=5, pd_sck_pin=6)
-    # if hx.zero():
-    #     raise ValueError("Tare is unsuccessful.")
-
-    # if calibrate:
-    #     x0 = hx.get_data_mean()
-    #     if not x0:
-    #         raise ValueError("Invalid x0: ", x0)
-
-    #     input("Put known weight on the scale and then press Enter: ")
-    #     x1 = hx.get_data_mean()
-    #     if not x1:
-    #         raise ValueError("Invalid x1: ", x1)
-
-    # if print_values:
-    #     print("x0: ", x0)
-    #     print("x1: ", x1)
 
     try:
         global current_weight
@@ -163,6 +140,15 @@ def run_scale(
 
     except (KeyboardInterrupt, SystemExit):
         GPIO.cleanup()
+
+
+@app.get("/latest_photo")
+async def latest_photo():
+    filepath = "/tmp/product.jpg"
+    if os.path.exists(filepath):
+        return FileResponse(filepath, media_type="image/jpeg")
+    else:
+        raise HTTPException(status_code=404, detail="Image not found")
 
 
 def register():
@@ -214,8 +200,31 @@ def unregister():
 #     unregister()
 
 
+def update_model():
+    try:
+        version_url = f"{MAIN_SERVER_URL}/get_model_version"
+        r = requests.get(version_url)
+        data = r.json()
+        version = str(data.get("version", "unknown")).lower()
+
+        current_version = get_version()
+
+        if current_version.lower() != str(version):
+            print(f"Updating model to version {version}")
+            model_url = f"{MAIN_SERVER_URL}/get_model"
+            r = requests.get(model_url)
+            with open("files/model.pt", "wb") as f:
+                f.write(r.content)
+            with open("files/model_version.txt", "w") as f:
+                f.write(version)
+    except Exception as e:
+        print("Model update failed:", e)
+
+
+
 # --- START SCALE THREAD ---
 register()
+update_model()
 thread = Thread(target=run_scale)
 thread.daemon = True
 thread.start()

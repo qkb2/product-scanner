@@ -8,6 +8,7 @@ function App() {
   const [products, setProducts] = useState([]);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [responseMsg, setResponseMsg] = useState("");
+  const [imgRefresh, setImgRefresh] = useState(Date.now());
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -52,6 +53,7 @@ function App() {
       .then(res => res.json())
       .then(data => {
         setResponseMsg(data.status === "correct" ? "✅ OK" : "❌ Not OK, wait for staff");
+        setImgRefresh(Date.now()); // Add a state to re-render image
       })
       .catch(err => setResponseMsg("❌ Error: " + err.message));
   };
@@ -93,6 +95,17 @@ function App() {
         </button>
         <p className="text-md">{responseMsg}</p>
       </div>
+
+      {BACKEND && (
+        <div className="mt-4">
+          <h2 className="text-lg font-semibold">Last Captured Image</h2>
+          <img
+            src={`${BACKEND}/latest_photo?${imgRefresh}`}  // prevent caching
+            alt="Last captured"
+            className="w-full border rounded"
+          />
+        </div>
+      )}
     </div>
   );
 }

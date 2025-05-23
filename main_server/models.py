@@ -15,16 +15,16 @@ class Product(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
     weight = Column(Float(), nullable=False)
-    model_id = Column(Integer)
+    model_label = Column(Integer)
     incidents = relationship("Incident", back_populates="product")
 
 class Incident(Base):
     __tablename__ = "incidents"
     id = Column(Integer, primary_key=True, index=True)
     product_id = Column(Integer, ForeignKey("products.id"))
+    predicted_label = Column(Integer)
     device_id = Column(Integer, ForeignKey("devices.id"))
     weight = Column(Float())
-    image_path = Column(String)
     result = Column(String)
     timestamp = Column(DateTime, default=datetime.utcnow)
 

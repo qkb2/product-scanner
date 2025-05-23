@@ -1,18 +1,17 @@
 # main_server/main.py
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from sqlalchemy.orm import Session
 from uuid import uuid4
-import shutil
 import os
 from dotenv import load_dotenv
 import uvicorn
 
 from main_server.db import SessionLocal, engine, Base
 from main_server.models import Product, Incident, Device
-from main_server.classifier import classify_image
 from main_server.auth import get_current_device
+from classifier.classifier import classify_image, get_version
 
 load_dotenv()
 
@@ -99,8 +98,8 @@ def unregister_device(
 
 @app.post("/validate")
 def validate(
-    image: UploadFile = File(...),
     product_id: int = Form(...),
+    pred_model_label: int = Form(),
     weight: float = Form(...),
     db: Session = Depends(get_db),
     device: Device = Depends(get_current_device),
@@ -109,24 +108,24 @@ def validate(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    # Save image
-    if image.filename is not None:
-        img_path = os.path.join(UPLOAD_DIR, image.filename)
-    else:
-        HTTPException(status_code=400, detail="Image missing")
-    with open(img_path, "wb") as buffer:
-        shutil.copyfileobj(image.file, buffer)
+    # # Save image
+    # if image.filename is not None:
+    #     img_path = os.path.join(UPLOAD_DIR, image.filename)
+    # else:
+    #     HTTPException(status_code=400, detail="Image missing")
+    # with open(img_path, "wb") as buffer:
+    #     shutil.copyfileobj(image.file, buffer)
 
-    # Classify
-    predicted_id = classify_image(img_path)
-    predicted_label = db.query(Product).filter_by(model_id=predicted_id).first()
+    # # Classify
+    # pred_model_label = classify_image(img_path)
+    pred_product = db.query(Product).filter_by(model_label=pred_model_label).first()
 
-    if predicted_label is not None:
-        print(f"Predicted id: {predicted_id} with label {predicted_label.name}")
+    if pred_product is not None:
+        print(f"Predicted id: {pred_model_label} with label {pred_product.name}")
     else:
-        print(f"Predicted id: {predicted_id} without label")
+        print(f"Predicted id: {pred_model_label} without label")
     
-    is_valid = (predicted_id == product.model_id) and (
+    is_valid = (pred_model_label == product.model_label) and (
         product.weight - 15 <= weight <= product.weight + 15
     )
     if not isinstance(is_valid, bool):
@@ -137,9 +136,9 @@ def validate(
 
     incident = Incident(
         product_id=product.id,
+        predicted_label=pred_model_label,
         device_id=device.id,
         weight=weight,
-        image_path=img_path,
         result="correct" if is_valid else "incorrect",
     )
     db.add(incident)
@@ -156,6 +155,8 @@ def last_incidents(count: int = 10, db: Session = Depends(get_db)):
     return [
         {
             "product": i.product.name,
+            'label': i.product.model_label,
+            'predicted label': i.predicted_label,
             "weight": i.weight,
             "result": i.result,
             "timestamp": i.timestamp,
@@ -177,7 +178,7 @@ def add_product(
     existing = db.query(Product).filter_by(name=name).first()
     if existing:
         existing.weight = weight
-        existing.model_id = model_id
+        existing.model_label = model_id
         db.commit()
         return {"message": "Updated"}
     p = Product(name=name, weight=weight, model_id=model_id)
@@ -201,5 +202,14 @@ def reset_devices(db: Session = Depends(get_db), shared_secret: str = Form(...))
     db.commit()
     return {"message": f"Reset successful. {deleted} devices removed."}
 
+
+@app.get("/get_model_version")
+def get_model_version():
+    return {"version": get_version()}
+
+
+@app.get("/get_model")
+def get_model():
+    return FileResponse("files/model.pt")
 
 uvicorn.run(app=app, host="0.0.0.0", port=8000, ssl_certfile=os.getenv("SSL_CERTFILE"), ssl_keyfile=os.getenv("SSL_KEYFILE"))
