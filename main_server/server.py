@@ -57,16 +57,25 @@ def register_device(
     shared_secret: str = Form(...),
     db: Session = Depends(get_db),
 ):
-    if (
-        shared_secret != SHARED_SECRET
-    ):  # You can replace this with an env var or secret manager
+    if shared_secret != SHARED_SECRET:
         raise HTTPException(status_code=403, detail="Invalid shared secret")
 
-    device = Device(name=device_name, api_key=str(uuid4()))
-    db.add(device)
-    db.commit()
-    db.refresh(device)
-    return {"device_id": device.id, "api_key": device.api_key}
+    # Check if the device already exists
+    device = db.query(Device).filter_by(name=device_name).first()
+
+    if device:
+        # Update existing device with new API key
+        device.api_key = str(uuid4())
+        db.commit()
+        db.refresh(device)
+        return {"message": "Device re-registered", "device_id": device.id, "api_key": device.api_key}
+    else:
+        # Create new device
+        device = Device(name=device_name, api_key=str(uuid4()))
+        db.add(device)
+        db.commit()
+        db.refresh(device)
+        return {"message": "Device registered", "device_id": device.id, "api_key": device.api_key}
 
 
 @app.delete("/unregister_device")
@@ -111,8 +120,11 @@ def validate(
     # Classify
     predicted_id = classify_image(img_path)
     predicted_label = db.query(Product).filter_by(model_id=predicted_id).first()
-    
-    print(f"Predicted id: {predicted_id} with label {predicted_label.name}")
+
+    if predicted_label is not None:
+        print(f"Predicted id: {predicted_id} with label {predicted_label.name}")
+    else:
+        print(f"Predicted id: {predicted_id} without label")
     
     is_valid = (predicted_id == product.model_id) and (
         product.weight - 15 <= weight <= product.weight + 15

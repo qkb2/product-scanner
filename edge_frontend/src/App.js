@@ -1,3 +1,4 @@
+// App.js
 import React, { useEffect, useState } from "react";
 
 const BACKEND = process.env.REACT_APP_BACKEND;
@@ -50,41 +51,48 @@ function App() {
     })
       .then(res => res.json())
       .then(data => {
-        if (data.status === "correct") {
-          setResponseMsg("✅ OK");
-        } else {
-          setResponseMsg("❌ Not OK, wait for staff");
-        }
+        setResponseMsg(data.status === "correct" ? "✅ OK" : "❌ Not OK, wait for staff");
       })
-      .catch(err => {
-        setResponseMsg("❌ Error: " + err.message);
-      });
+      .catch(err => setResponseMsg("❌ Error: " + err.message));
   };
 
   return (
-    <div style={{ padding: 20, fontFamily: "Arial" }}>
-      <h1>Weigh a Product</h1>
-      <p>Current weight: <strong>{weight} g</strong></p>
+    <div className="p-6 font-sans max-w-xl mx-auto space-y-6">
+      <h1 className="text-2xl font-bold text-blue-700">Weigh a Product</h1>
+      <div className="text-lg">Current weight: <strong>{weight} g</strong></div>
 
-      <h2>Products List</h2>
-      <button onClick={fetchProducts}>Get Products</button>
-      <br /><br />
+      <div className="space-y-2">
+        <h2 className="text-xl font-semibold">Products List</h2>
+        <button
+          onClick={fetchProducts}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Refresh Products
+        </button>
 
-      <select
-        value={selectedProductId}
-        onChange={e => setSelectedProductId(e.target.value)}
-      >
-        <option value="">Select a product</option>
-        {products.map((product) => (
-          <option key={product.id} value={product.id}>
-            {product.name} - {product.weight} g
-          </option>
-        ))}
-      </select>
+        <select
+          value={selectedProductId}
+          onChange={e => setSelectedProductId(e.target.value)}
+          className="w-full border border-gray-300 p-2 rounded mt-2"
+        >
+          <option value="">Select a product</option>
+          {products.map(product => (
+            <option key={product.id} value={product.id}>
+              {product.name} - {product.weight} g
+            </option>
+          ))}
+        </select>
+      </div>
 
-      <br /><br />
-      <button onClick={sendProduct}>Send to Server</button>
-      <p>{responseMsg}</p>
+      <div className="space-y-2">
+        <button
+          onClick={sendProduct}
+          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+        >
+          Send to Server
+        </button>
+        <p className="text-md">{responseMsg}</p>
+      </div>
     </div>
   );
 }

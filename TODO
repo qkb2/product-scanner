@@ -1,0 +1,4 @@
+1. make imgs appear on edge front screen for user to see what is bng sent to the srv
+2. make edge dev. use a model + model distr.
+3. add sm more prod. for testing
+4. docs, add docs (what is being used, why VGG, how to do envs)

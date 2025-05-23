@@ -1,6 +1,7 @@
+// App.js
 import React, { useState, useEffect } from "react";
 
-const SERVER_URL = "https://127.0.0.1:8000"; // local server
+const SERVER_URL = "https://127.0.0.1:8000";
 
 function App() {
   const [incidents, setIncidents] = useState([]);
@@ -14,11 +15,10 @@ function App() {
   const [message, setMessage] = useState("");
   const [resetSecret, setResetSecret] = useState("");
 
-
   useEffect(() => {
     fetchIncidents();
     fetchProducts();
-    const interval = setInterval(fetchIncidents, 10000); // refresh every 10s
+    const interval = setInterval(fetchIncidents, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -48,10 +48,7 @@ function App() {
 
     try {
       const formData = new FormData();
-      formData.append("name", form.name);
-      formData.append("weight", form.weight);
-      formData.append("model_id", form.model_id);
-      formData.append("shared_secret", form.shared_secret);
+      Object.entries(form).forEach(([key, val]) => formData.append(key, val));
 
       const res = await fetch(`${SERVER_URL}/add_product`, {
         method: "POST",
@@ -59,10 +56,7 @@ function App() {
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.detail || "Unknown error");
-      }
+      if (!res.ok) throw new Error(data.detail || "Unknown error");
 
       setMessage(data.message);
       fetchProducts();
@@ -85,10 +79,7 @@ function App() {
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.detail || "Unknown error");
-      }
+      if (!res.ok) throw new Error(data.detail || "Unknown error");
 
       setMessage(data.message);
     } catch (err) {
@@ -97,24 +88,24 @@ function App() {
   };
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial" }}>
-      <h1>Main Server Dashboard</h1>
+    <div className="p-8 font-sans max-w-3xl mx-auto space-y-8">
+      <h1 className="text-3xl font-bold text-blue-700">Main Server Dashboard</h1>
 
       <section>
-        <h2>Last 10 Incidents</h2>
-        <ul>
+        <h2 className="text-xl font-semibold mb-2">Last 10 Incidents</h2>
+        <ul className="space-y-1 text-gray-700">
           {incidents.map((i, idx) => (
             <li key={idx}>
               [{new Date(i.timestamp).toLocaleString()}] {i.product} - {i.weight}g -{" "}
-              {i.result.toUpperCase()} (Device: {i.device})
+              <span className="font-semibold">{i.result.toUpperCase()}</span> (Device: {i.device})
             </li>
           ))}
         </ul>
       </section>
 
       <section>
-        <h2>Products</h2>
-        <ul>
+        <h2 className="text-xl font-semibold mb-2">Products</h2>
+        <ul className="list-disc pl-6 space-y-1 text-gray-700">
           {products.map((p, idx) => (
             <li key={idx}>
               {p.name} - {p.weight}g
@@ -124,11 +115,12 @@ function App() {
       </section>
 
       <section>
-        <h2>Add / Update Product</h2>
-        <form onSubmit={handleAddProduct}>
+        <h2 className="text-xl font-semibold mb-2">Add / Update Product</h2>
+        <form onSubmit={handleAddProduct} className="space-y-3">
           <input
             type="text"
             placeholder="Name"
+            className="w-full p-2 border border-gray-300 rounded"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
@@ -136,6 +128,7 @@ function App() {
           <input
             type="number"
             placeholder="Weight"
+            className="w-full p-2 border border-gray-300 rounded"
             value={form.weight}
             onChange={(e) => setForm({ ...form, weight: e.target.value })}
             required
@@ -143,6 +136,7 @@ function App() {
           <input
             type="number"
             placeholder="Model ID"
+            className="w-full p-2 border border-gray-300 rounded"
             value={form.model_id}
             onChange={(e) => setForm({ ...form, model_id: e.target.value })}
             required
@@ -150,29 +144,40 @@ function App() {
           <input
             type="password"
             placeholder="Shared Secret"
+            className="w-full p-2 border border-gray-300 rounded"
             value={form.shared_secret}
             onChange={(e) => setForm({ ...form, shared_secret: e.target.value })}
             required
           />
-          <button type="submit">Submit</button>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            Submit
+          </button>
         </form>
-        <p>{message}</p>
+        <p className="text-sm mt-2 text-gray-700">{message}</p>
       </section>
 
       <section>
-        <h2>Reset Devices</h2>
-        <form onSubmit={handleResetDevices}>
+        <h2 className="text-xl font-semibold mb-2">Reset Devices</h2>
+        <form onSubmit={handleResetDevices} className="space-y-3">
           <input
             type="password"
             placeholder="Shared Secret"
+            className="w-full p-2 border border-gray-300 rounded"
             value={resetSecret}
             onChange={(e) => setResetSecret(e.target.value)}
             required
           />
-          <button type="submit">Reset Devices</button>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Reset Devices
+          </button>
         </form>
       </section>
-
     </div>
   );
 }
