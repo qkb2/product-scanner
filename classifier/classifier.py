@@ -18,7 +18,7 @@ def load_model():
     except Exception as e:
         pass
 
-    model = torch.load(MODEL_PATH, map_location=torch.device("cpu"))
+    model = torch.load(MODEL_PATH, map_location=torch.device("cpu"), weights_only=False)
     model.eval()
     return model
 
