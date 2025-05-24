@@ -7,7 +7,7 @@ import os
 # Basic config
 MODEL_PATH = "files/model.pt"  # fine-tuned ResNet model
 VERSION_PATH = "files/v.txt"
-CURRENT_VERSION = "0"
+CURRENT_VERSION = "NONE"
 
 
 def load_model():

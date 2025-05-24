@@ -4,6 +4,7 @@ node_modules
 __pycache__
 *.pyc
 *.pth
+*.pt
 *.db
 *.env
 certs

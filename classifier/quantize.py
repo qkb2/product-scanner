@@ -26,3 +26,6 @@ model_quantized = model_fp32
 # Save
 torch.save(model_quantized, "files/model.pt")
 print("✅ Quantized MobileNetV2 saved as 'model.pt'")
+
+with open("files/v.txt", "w") as f:
+    f.write("0")
