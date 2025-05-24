@@ -14,10 +14,13 @@ function App() {
   });
   const [message, setMessage] = useState("");
   const [resetSecret, setResetSecret] = useState("");
+  const [devices, setDevices] = useState([]);
+  const [deviceSecret, setDeviceSecret] = useState("");
 
   useEffect(() => {
     fetchIncidents();
     fetchProducts();
+    fetchDevices();
     const interval = setInterval(fetchIncidents, 10000);
     return () => clearInterval(interval);
   }, []);
@@ -39,6 +42,16 @@ function App() {
       setProducts(data);
     } catch (err) {
       console.error("Error fetching products:", err);
+    }
+  };
+
+  const fetchDevices = async () => {
+    try {
+      const res = await fetch(`${SERVER_URL}/get_devices?shared_secret=${deviceSecret}`);
+      const data = await res.json();
+      setDevices(data);
+    } catch (err) {
+      console.error("Error fetching devices:", err);
     }
   };
 
@@ -82,6 +95,32 @@ function App() {
       if (!res.ok) throw new Error(data.detail || "Unknown error");
 
       setMessage(data.message);
+    } catch (err) {
+      setMessage(`Error: ${err.message}`);
+    }
+  };
+
+  const handleRemoveDevice = async (id) => {
+    if (!deviceSecret) {
+      alert("Please provide the shared secret.");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("device_id", id);
+      formData.append("shared_secret", deviceSecret);
+
+      const res = await fetch(`${SERVER_URL}/remove_device`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Unknown error");
+
+      setMessage(data.message);
+      fetchDevices();
     } catch (err) {
       setMessage(`Error: ${err.message}`);
     }
@@ -158,6 +197,39 @@ function App() {
         </form>
         <p className="text-sm mt-2 text-gray-700">{message}</p>
       </section>
+
+      <section>
+        <h2 className="text-xl font-semibold mb-2">Registered Devices</h2>
+        <div className="space-y-2">
+          <input
+            type="password"
+            placeholder="Shared Secret"
+            className="w-full p-2 border border-gray-300 rounded"
+            value={deviceSecret}
+            onChange={(e) => setDeviceSecret(e.target.value)}
+          />
+          <button
+            onClick={fetchDevices}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Refresh Device List
+          </button>
+          <ul className="list-disc pl-6 space-y-1 text-gray-700">
+            {devices.map((d) => (
+              <li key={d.id} className="flex items-center justify-between">
+                {d.name}
+                <button
+                  onClick={() => handleRemoveDevice(d.id)}
+                  className="ml-4 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
 
       <section>
         <h2 className="text-xl font-semibold mb-2">Reset Devices</h2>

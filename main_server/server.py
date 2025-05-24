@@ -67,14 +67,22 @@ def register_device(
         device.api_key = str(uuid4())
         db.commit()
         db.refresh(device)
-        return {"message": "Device re-registered", "device_id": device.id, "api_key": device.api_key}
+        return {
+            "message": "Device re-registered",
+            "device_id": device.id,
+            "api_key": device.api_key,
+        }
     else:
         # Create new device
         device = Device(name=device_name, api_key=str(uuid4()))
         db.add(device)
         db.commit()
         db.refresh(device)
-        return {"message": "Device registered", "device_id": device.id, "api_key": device.api_key}
+        return {
+            "message": "Device registered",
+            "device_id": device.id,
+            "api_key": device.api_key,
+        }
 
 
 @app.delete("/unregister_device")
@@ -83,17 +91,47 @@ def unregister_device(
     api_key: str = Form(...),
     db: Session = Depends(get_db),
 ):
-    device = db.query(Device).filter(
-        Device.name == device_name,
-        Device.api_key == str(api_key)
-    ).first()
+    device = (
+        db.query(Device)
+        .filter(Device.name == device_name, Device.api_key == str(api_key))
+        .first()
+    )
 
     if not device:
-        raise HTTPException(status_code=404, detail="Device not found or invalid credentials")
+        raise HTTPException(
+            status_code=404, detail="Device not found or invalid credentials"
+        )
 
     db.delete(device)
     db.commit()
     return {"detail": "Device unregistered successfully"}
+
+
+@app.get("/get_devices")
+def get_devices(db: Session = Depends(get_db), shared_secret: str = None):
+    if shared_secret != SHARED_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid shared secret")
+
+    devices = db.query(Device).all()
+    return [{"id": d.id, "name": d.name} for d in devices]
+
+
+@app.post("/remove_device")
+def remove_device(
+    device_id: int = Form(...),
+    shared_secret: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    if shared_secret != SHARED_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid shared secret")
+
+    device = db.query(Device).filter_by(id=device_id).first()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    db.delete(device)
+    db.commit()
+    return {"message": f"Device '{device.name}' removed."}
 
 
 @app.post("/validate")
@@ -124,14 +162,14 @@ def validate(
         print(f"Predicted id: {pred_model_label} with label {pred_product.name}")
     else:
         print(f"Predicted id: {pred_model_label} without label")
-    
+
     is_valid = (pred_model_label == product.model_label) and (
         product.weight - 15 <= weight <= product.weight + 15
     )
     if not isinstance(is_valid, bool):
         raise HTTPException(status_code=200, detail="Internal error")
     is_valid = bool(is_valid)
-    
+
     print(f"Is valid: {is_valid}")
 
     incident = Incident(
@@ -155,8 +193,8 @@ def last_incidents(count: int = 10, db: Session = Depends(get_db)):
     return [
         {
             "product": i.product.name,
-            'label': i.product.model_label,
-            'predicted label': i.predicted_label,
+            "label": i.product.model_label,
+            "predicted label": i.predicted_label,
             "weight": i.weight,
             "result": i.result,
             "timestamp": i.timestamp,
@@ -168,13 +206,17 @@ def last_incidents(count: int = 10, db: Session = Depends(get_db)):
 
 @app.post("/add_product")
 def add_product(
-    name: str = Form(...), weight: float = Form(...), model_id: int = Form(...), db: Session = Depends(get_db), shared_secret: str = Form(...)
+    name: str = Form(...),
+    weight: float = Form(...),
+    model_id: int = Form(...),
+    db: Session = Depends(get_db),
+    shared_secret: str = Form(...),
 ):
     if (
         shared_secret != SHARED_SECRET
     ):  # You can replace this with an env var or secret manager
         raise HTTPException(status_code=403, detail="Invalid shared secret")
-    
+
     existing = db.query(Product).filter_by(name=name).first()
     if existing:
         existing.weight = weight
@@ -197,7 +239,7 @@ def get_products(db: Session = Depends(get_db)):
 def reset_devices(db: Session = Depends(get_db), shared_secret: str = Form(...)):
     if shared_secret != SHARED_SECRET:
         raise HTTPException(status_code=403, detail="Invalid shared secret")
-    
+
     deleted = db.query(Device).delete()
     db.commit()
     return {"message": f"Reset successful. {deleted} devices removed."}
@@ -212,4 +254,11 @@ def get_model_version():
 def get_model():
     return FileResponse("files/model.pt")
 
-uvicorn.run(app=app, host="0.0.0.0", port=8000, ssl_certfile=os.getenv("SSL_CERTFILE"), ssl_keyfile=os.getenv("SSL_KEYFILE"))
+
+uvicorn.run(
+    app=app,
+    host="0.0.0.0",
+    port=8000,
+    ssl_certfile=os.getenv("SSL_CERTFILE"),
+    ssl_keyfile=os.getenv("SSL_KEYFILE"),
+)

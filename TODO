@@ -2,4 +2,4 @@
 2. make edge dev. use a model + model distr. (DONE, NOT TESTED)
 3. add sm more prod. for testing (???)
 4. docs, add docs (what is being used, why VGG, how to do envs) (STARTED)
-5. add sm bells and whistles for admin backend (so they see more info abt the edge devs etc.)
+5. add sm bells and whistles for admin backend (so they see more info abt the edge devs etc.) (DONE, NOT TESTED)

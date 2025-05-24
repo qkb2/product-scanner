@@ -5,8 +5,8 @@ from PIL import Image
 import os
 
 # Basic config
-MODEL_PATH = "model.pt"  # fine-tuned ResNet model
-VERSION_PATH = "v.txt"
+MODEL_PATH = "files/model.pt"  # fine-tuned ResNet model
+VERSION_PATH = "files/v.txt"
 CURRENT_VERSION = "0"
 
 
