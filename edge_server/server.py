@@ -218,7 +218,7 @@ def update_model():
             r = requests.get(model_url, verify=MAIN_SERVER_CERT)
             with open("files/model.pt", "wb") as f:
                 f.write(r.content)
-            with open("files/model_version.txt", "w") as f:
+            with open("files/v.txt", "w") as f:
                 f.write(version)
             classifier.load_model()
     except Exception as e:

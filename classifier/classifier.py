@@ -24,6 +24,7 @@ class ImageClassifier:
                 self.version = f.read().strip()
         except Exception as e:
             # Could log or print the error if needed
+            print("Model v. unknown")
             self.version = "UNKNOWN"
 
         try:
@@ -31,6 +32,7 @@ class ImageClassifier:
             self.model.eval()
         except Exception as e:
             # Could log or print the error if needed
+            print(f"Could not load model: {e}")
             self.model = None
 
     def classify_image(self, image_path: str) -> int:
