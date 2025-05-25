@@ -28,7 +28,7 @@ class ImageClassifier:
             self.version = "UNKNOWN"
 
         try:
-            self.model = torch.load(self.model_path, map_location=torch.device("cpu"))
+            self.model = torch.load(self.model_path, map_location=torch.device("cpu"), weights_only=False)
             self.model.eval()
         except Exception as e:
             # Could log or print the error if needed
