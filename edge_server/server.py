@@ -77,7 +77,7 @@ async def send_product(request: Request):
 
     photo_path = take_photo()
     
-    pred_model_label = classify_image(photo_path)
+    pred_model_label = classifier.classify_image(photo_path)
     data = {
         "product_id": product_id,
         "weight": str(round(current_weight, 1)),
