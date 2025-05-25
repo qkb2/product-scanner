@@ -47,7 +47,7 @@ function App() {
 
   const fetchDevices = async () => {
     try {
-      const res = await fetch(`${SERVER_URL}/get_devices?shared_secret=${deviceSecret}`);
+      const res = await fetch(`${SERVER_URL}/get_devices`);
       const data = await res.json();
       setDevices(data);
     } catch (err) {

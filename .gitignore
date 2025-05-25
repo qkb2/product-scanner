@@ -7,9 +7,10 @@ __pycache__
 *.pt
 *.db
 *.env
-certs
 *.txt
 *.jpg
 *.jpeg
 *.png
 tmp/*
+certs/*
+files/*

@@ -11,7 +11,7 @@ import requests
 from dotenv import load_dotenv
 import uvicorn
 import statistics as st
-from classifier.classifier import classify_image, get_version
+from classifier.classifier import ImageClassifier
 
 
 # Load environment variables from a .env file
@@ -47,6 +47,8 @@ app.add_middleware(
 current_weight = 0.0
 lock = Lock()
 hx = None
+
+classifier = ImageClassifier()
 
 
 # --- WEIGHT API ROUTE ---
@@ -207,7 +209,7 @@ def update_model():
         data = r.json()
         version = str(data.get("version", "unknown")).lower()
 
-        current_version = get_version()
+        current_version = classifier.get_version()
 
         if current_version.lower() != str(version):
             print(f"Updating model to version {version}")
@@ -217,6 +219,7 @@ def update_model():
                 f.write(r.content)
             with open("files/model_version.txt", "w") as f:
                 f.write(version)
+            classifier.load_model()
     except Exception as e:
         print("Model update failed:", e)
 

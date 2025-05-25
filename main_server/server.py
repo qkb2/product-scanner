@@ -11,7 +11,7 @@ import uvicorn
 from main_server.db import SessionLocal, engine, Base
 from main_server.models import Product, Incident, Device
 from main_server.auth import get_current_device
-from classifier.classifier import classify_image, get_version
+from classifier.classifier import ImageClassifier
 
 load_dotenv()
 
@@ -41,6 +41,7 @@ app.add_middleware(
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+classifier = ImageClassifier()
 
 def get_db():
     db = SessionLocal()
@@ -108,10 +109,7 @@ def unregister_device(
 
 
 @app.get("/get_devices")
-def get_devices(db: Session = Depends(get_db), shared_secret: str = None):
-    if shared_secret != SHARED_SECRET:
-        raise HTTPException(status_code=403, detail="Invalid shared secret")
-
+def get_devices(db: Session = Depends(get_db)):
     devices = db.query(Device).all()
     return [{"id": d.id, "name": d.name} for d in devices]
 
@@ -223,7 +221,7 @@ def add_product(
         existing.model_label = model_id
         db.commit()
         return {"message": "Updated"}
-    p = Product(name=name, weight=weight, model_id=model_id)
+    p = Product(name=name, weight=weight, model_label=model_id)
     db.add(p)
     db.commit()
     return {"message": "Added"}
@@ -247,7 +245,7 @@ def reset_devices(db: Session = Depends(get_db), shared_secret: str = Form(...))
 
 @app.get("/get_model_version")
 def get_model_version():
-    return {"version": get_version()}
+    return {"version": classifier.get_version()}
 
 
 @app.get("/get_model")
