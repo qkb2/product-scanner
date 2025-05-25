@@ -16,6 +16,7 @@ from classifier.classifier import ImageClassifier
 
 # Load environment variables from a .env file
 load_dotenv()
+GPIO.cleanup()
 
 # --- CONFIG ---
 origins = [
@@ -205,7 +206,7 @@ def unregister():
 def update_model():
     try:
         version_url = f"{MAIN_SERVER_URL}/get_model_version"
-        r = requests.get(version_url)
+        r = requests.get(version_url, verify=MAIN_SERVER_CERT)
         data = r.json()
         version = str(data.get("version", "unknown")).lower()
 
@@ -214,7 +215,7 @@ def update_model():
         if current_version.lower() != str(version):
             print(f"Updating model to version {version}")
             model_url = f"{MAIN_SERVER_URL}/get_model"
-            r = requests.get(model_url)
+            r = requests.get(model_url, verify=MAIN_SERVER_CERT)
             with open("files/model.pt", "wb") as f:
                 f.write(r.content)
             with open("files/model_version.txt", "w") as f:
