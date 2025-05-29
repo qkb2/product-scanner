@@ -6,16 +6,15 @@ const SERVER_URL = "https://127.0.0.1:8000";
 function App() {
   const [incidents, setIncidents] = useState([]);
   const [products, setProducts] = useState([]);
+  const [devices, setDevices] = useState([]);
+  const [message, setMessage] = useState("");
+
+  const [sharedSecret, setSharedSecret] = useState("");
   const [form, setForm] = useState({
     name: "",
     weight: "",
     model_id: "",
-    shared_secret: "",
   });
-  const [message, setMessage] = useState("");
-  const [resetSecret, setResetSecret] = useState("");
-  const [devices, setDevices] = useState([]);
-  const [deviceSecret, setDeviceSecret] = useState("");
 
   useEffect(() => {
     fetchIncidents();
@@ -62,6 +61,7 @@ function App() {
     try {
       const formData = new FormData();
       Object.entries(form).forEach(([key, val]) => formData.append(key, val));
+      formData.append("shared_secret", sharedSecret);
 
       const res = await fetch(`${SERVER_URL}/add_product`, {
         method: "POST",
@@ -84,7 +84,7 @@ function App() {
 
     try {
       const formData = new FormData();
-      formData.append("shared_secret", resetSecret);
+      formData.append("shared_secret", sharedSecret);
 
       const res = await fetch(`${SERVER_URL}/reset_devices`, {
         method: "POST",
@@ -101,7 +101,7 @@ function App() {
   };
 
   const handleRemoveDevice = async (id) => {
-    if (!deviceSecret) {
+    if (!sharedSecret) {
       alert("Please provide the shared secret.");
       return;
     }
@@ -109,7 +109,7 @@ function App() {
     try {
       const formData = new FormData();
       formData.append("device_id", id);
-      formData.append("shared_secret", deviceSecret);
+      formData.append("shared_secret", sharedSecret);
 
       const res = await fetch(`${SERVER_URL}/remove_device`, {
         method: "POST",
@@ -126,11 +126,53 @@ function App() {
     }
   };
 
+  const handleForceUpdate = async (e) => {
+    e.preventDefault();
+    setMessage("Triggering model updates...");
+
+    try {
+      const formData = new FormData();
+      formData.append("shared_secret", sharedSecret);
+
+      const res = await fetch(`${SERVER_URL}/force_update_models`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Unknown error");
+
+      const resultsText = data.results
+        .map(
+          (r) =>
+            `${r.device}: ${r.status}${
+              r.status === "failure" ? ` (${r.error})` : ""
+            }`
+        )
+        .join("\n");
+
+      setMessage(`Update Results:\n${resultsText}`);
+    } catch (err) {
+      setMessage(`Error: ${err.message}`);
+    }
+  };
+
   return (
     <div className="p-8 font-sans max-w-3xl mx-auto space-y-8">
       <h1 className="text-3xl font-bold text-blue-700">
         Main Server Dashboard
       </h1>
+
+      <section>
+        <label className="block font-semibold mb-2">Shared Secret:</label>
+        <input
+          type="password"
+          placeholder="Shared Secret"
+          className="w-full p-2 border border-gray-300 rounded"
+          value={sharedSecret}
+          onChange={(e) => setSharedSecret(e.target.value)}
+        />
+      </section>
 
       <section>
         <h2 className="text-xl font-semibold mb-2">Last 10 Incidents</h2>
@@ -184,16 +226,6 @@ function App() {
             onChange={(e) => setForm({ ...form, model_id: e.target.value })}
             required
           />
-          <input
-            type="password"
-            placeholder="Shared Secret"
-            className="w-full p-2 border border-gray-300 rounded"
-            value={form.shared_secret}
-            onChange={(e) =>
-              setForm({ ...form, shared_secret: e.target.value })
-            }
-            required
-          />
           <button
             type="submit"
             className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
@@ -207,13 +239,6 @@ function App() {
       <section>
         <h2 className="text-xl font-semibold mb-2">Registered Devices</h2>
         <div className="space-y-2">
-          <input
-            type="password"
-            placeholder="Shared Secret"
-            className="w-full p-2 border border-gray-300 rounded"
-            value={deviceSecret}
-            onChange={(e) => setDeviceSecret(e.target.value)}
-          />
           <button
             onClick={fetchDevices}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -239,14 +264,6 @@ function App() {
       <section>
         <h2 className="text-xl font-semibold mb-2">Reset Devices</h2>
         <form onSubmit={handleResetDevices} className="space-y-3">
-          <input
-            type="password"
-            placeholder="Shared Secret"
-            className="w-full p-2 border border-gray-300 rounded"
-            value={resetSecret}
-            onChange={(e) => setResetSecret(e.target.value)}
-            required
-          />
           <button
             type="submit"
             className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
@@ -260,39 +277,7 @@ function App() {
         <h2 className="text-xl font-semibold mb-2">
           Force Update Models on All Devices
         </h2>
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setMessage("Triggering model updates...");
-
-            try {
-              const formData = new FormData();
-              formData.append("shared_secret", deviceSecret);
-
-              const res = await fetch(`${SERVER_URL}/force_update_models`, {
-                method: "POST",
-                body: formData,
-              });
-
-              const data = await res.json();
-              if (!res.ok) throw new Error(data.detail || "Unknown error");
-
-              const resultsText = data.results
-                .map(
-                  (r) =>
-                    `${r.device}: ${r.status}${
-                      r.status === "failure" ? ` (${r.error})` : ""
-                    }`
-                )
-                .join("\n");
-
-              setMessage(`Update Results:\n${resultsText}`);
-            } catch (err) {
-              setMessage(`Error: ${err.message}`);
-            }
-          }}
-          className="space-y-3"
-        >
+        <form onSubmit={handleForceUpdate} className="space-y-3">
           <button
             type="submit"
             className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"

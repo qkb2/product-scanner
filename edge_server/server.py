@@ -181,7 +181,7 @@ def register():
         data={
             "device_name": DEVICE_NAME,
             "shared_secret": SHARED_SECRET,
-            "address": f"http:{device_ip}:8000",
+            "address": f"http://{device_ip}:8000",
         },
         verify=MAIN_SERVER_CERT,
     )

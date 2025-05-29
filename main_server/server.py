@@ -260,6 +260,8 @@ def force_update_models(db: Session = Depends(get_db), shared_secret: str = Form
 
     devices = db.query(Device).all()
     results = []
+    
+    classifier.load_model()
 
     for device in devices:
         try:
