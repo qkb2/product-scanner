@@ -30,7 +30,7 @@ MAIN_SERVER_URL = os.getenv(
     "MAIN_SERVER_URL", "https://your-main-server-ip:8000/verify_product"
 )  # Update to use env var
 SHARED_SECRET = os.getenv("SHARED_SECRET", "abc123")  # Store shared secret securely
-DEVICE_NAME = os.getenv("SHARED_SECRET", "rpi1")  # Store shared secret securely
+DEVICE_NAME = os.getenv("DEVICE_NAME", "rpi1")  # Store shared secret securely
 API_KEY = ""
 API_KEY_FILE = "key.txt"
 MAIN_SERVER_CERT = os.getenv("MAIN_SERVER_CERT", False)
