@@ -9,6 +9,7 @@ class Device(Base):
     name = Column(String, unique=True, nullable=False)
     api_key = Column(String, unique=True, nullable=False)
     incidents = relationship("Incident", back_populates="device")
+    address = Column(String, default="http://127.0.0.1:8000")
 
 class Product(Base):
     __tablename__ = "products"

@@ -128,15 +128,19 @@ function App() {
 
   return (
     <div className="p-8 font-sans max-w-3xl mx-auto space-y-8">
-      <h1 className="text-3xl font-bold text-blue-700">Main Server Dashboard</h1>
+      <h1 className="text-3xl font-bold text-blue-700">
+        Main Server Dashboard
+      </h1>
 
       <section>
         <h2 className="text-xl font-semibold mb-2">Last 10 Incidents</h2>
         <ul className="space-y-1 text-gray-700">
           {incidents.map((i, idx) => (
             <li key={idx}>
-              [{new Date(i.timestamp).toLocaleString()}] {i.product} - {i.weight}g -{" "}
-              <span className="font-semibold">{i.result.toUpperCase()}</span> (Device: {i.device})
+              [{new Date(i.timestamp).toLocaleString()}] {i.product} -{" "}
+              {i.weight}g -{" "}
+              <span className="font-semibold">{i.result.toUpperCase()}</span>{" "}
+              (Device: {i.device})
             </li>
           ))}
         </ul>
@@ -185,7 +189,9 @@ function App() {
             placeholder="Shared Secret"
             className="w-full p-2 border border-gray-300 rounded"
             value={form.shared_secret}
-            onChange={(e) => setForm({ ...form, shared_secret: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, shared_secret: e.target.value })
+            }
             required
           />
           <button
@@ -230,7 +236,6 @@ function App() {
         </div>
       </section>
 
-
       <section>
         <h2 className="text-xl font-semibold mb-2">Reset Devices</h2>
         <form onSubmit={handleResetDevices} className="space-y-3">
@@ -247,6 +252,52 @@ function App() {
             className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
           >
             Reset Devices
+          </button>
+        </form>
+      </section>
+
+      <section>
+        <h2 className="text-xl font-semibold mb-2">
+          Force Update Models on All Devices
+        </h2>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setMessage("Triggering model updates...");
+
+            try {
+              const formData = new FormData();
+              formData.append("shared_secret", deviceSecret);
+
+              const res = await fetch(`${SERVER_URL}/force_update_models`, {
+                method: "POST",
+                body: formData,
+              });
+
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.detail || "Unknown error");
+
+              const resultsText = data.results
+                .map(
+                  (r) =>
+                    `${r.device}: ${r.status}${
+                      r.status === "failure" ? ` (${r.error})` : ""
+                    }`
+                )
+                .join("\n");
+
+              setMessage(`Update Results:\n${resultsText}`);
+            } catch (err) {
+              setMessage(`Error: ${err.message}`);
+            }
+          }}
+          className="space-y-3"
+        >
+          <button
+            type="submit"
+            className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+          >
+            Force Update Models
           </button>
         </form>
       </section>

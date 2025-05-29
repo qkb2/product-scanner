@@ -13,8 +13,8 @@ function App() {
   useEffect(() => {
     const interval = setInterval(() => {
       fetch(`${BACKEND}/weight`)
-        .then(res => res.json())
-        .then(data => setWeight(data.current_weight))
+        .then((res) => res.json())
+        .then((data) => setWeight(data.current_weight))
         .catch(console.error);
     }, 1000);
     return () => clearInterval(interval);
@@ -22,8 +22,8 @@ function App() {
 
   const fetchProducts = () => {
     fetch(`${BACKEND}/get_products`)
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.status === "error") {
           alert("Error fetching products: " + data.details);
         } else {
@@ -50,18 +50,22 @@ function App() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ product_id: selectedProductId }),
     })
-      .then(res => res.json())
-      .then(data => {
-        setResponseMsg(data.status === "correct" ? "✅ OK" : "❌ Not OK, wait for staff");
+      .then((res) => res.json())
+      .then((data) => {
+        setResponseMsg(
+          data.status === "correct" ? "✅ OK" : "❌ Not OK, wait for staff"
+        );
         setImgRefresh(Date.now()); // Add a state to re-render image
       })
-      .catch(err => setResponseMsg("❌ Error: " + err.message));
+      .catch((err) => setResponseMsg("❌ Error: " + err.message));
   };
 
   return (
     <div className="p-6 font-sans max-w-xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold text-blue-700">Weigh a Product</h1>
-      <div className="text-lg">Current weight: <strong>{weight} g</strong></div>
+      <div className="text-lg">
+        Current weight: <strong>{weight} g</strong>
+      </div>
 
       <div className="space-y-2">
         <h2 className="text-xl font-semibold">Products List</h2>
@@ -74,11 +78,11 @@ function App() {
 
         <select
           value={selectedProductId}
-          onChange={e => setSelectedProductId(e.target.value)}
+          onChange={(e) => setSelectedProductId(e.target.value)}
           className="w-full border border-gray-300 p-2 rounded mt-2"
         >
           <option value="">Select a product</option>
-          {products.map(product => (
+          {products.map((product) => (
             <option key={product.id} value={product.id}>
               {product.name} - {product.weight} g
             </option>
@@ -100,7 +104,7 @@ function App() {
         <div className="mt-4">
           <h2 className="text-lg font-semibold">Last Captured Image</h2>
           <img
-            src={`${BACKEND}/latest_photo?${imgRefresh}`}  // prevent caching
+            src={`${BACKEND}/latest_photo?${imgRefresh}`} // prevent caching
             alt="Last captured"
             className="w-full border rounded"
           />

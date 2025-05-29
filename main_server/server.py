@@ -7,6 +7,7 @@ from uuid import uuid4
 import os
 from dotenv import load_dotenv
 import uvicorn
+import requests
 
 from main_server.db import SessionLocal, engine, Base
 from main_server.models import Product, Incident, Device
@@ -43,6 +44,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 classifier = ImageClassifier()
 
+
 def get_db():
     db = SessionLocal()
     try:
@@ -55,17 +57,16 @@ def get_db():
 def register_device(
     device_name: str = Form(...),
     shared_secret: str = Form(...),
+    address: str = Form(...),
     db: Session = Depends(get_db),
 ):
     if shared_secret != SHARED_SECRET:
         raise HTTPException(status_code=403, detail="Invalid shared secret")
 
-    # Check if the device already exists
     device = db.query(Device).filter_by(name=device_name).first()
-
     if device:
-        # Update existing device with new API key
         device.api_key = str(uuid4())
+        device.address = address
         db.commit()
         db.refresh(device)
         return {
@@ -74,8 +75,7 @@ def register_device(
             "api_key": device.api_key,
         }
     else:
-        # Create new device
-        device = Device(name=device_name, api_key=str(uuid4()))
+        device = Device(name=device_name, api_key=str(uuid4()), address=address)
         db.add(device)
         db.commit()
         db.refresh(device)
@@ -251,6 +251,29 @@ def get_model_version():
 @app.get("/get_model")
 def get_model():
     return FileResponse("files/model.pt")
+
+
+@app.post("/force_update_models")
+def force_update_models(db: Session = Depends(get_db), shared_secret: str = Form(...)):
+    if shared_secret != SHARED_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid shared secret")
+
+    devices = db.query(Device).all()
+    results = []
+
+    for device in devices:
+        try:
+            url = f"{device.address}/update_model"
+            headers = {"Authorization": f"Bearer {device.api_key}"}
+            r = requests.post(url, headers=headers, timeout=5)
+            r.raise_for_status()
+            results.append({"device": device.name, "status": "success"})
+        except Exception as e:
+            results.append(
+                {"device": device.name, "status": "failure", "error": str(e)}
+            )
+
+    return {"results": results}
 
 
 uvicorn.run(

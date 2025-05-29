@@ -8,6 +8,7 @@ import RPi.GPIO as GPIO
 from hx711 import HX711
 import time
 import requests
+import socket
 from dotenv import load_dotenv
 import uvicorn
 import statistics as st
@@ -76,12 +77,12 @@ async def send_product(request: Request):
     product_id = data.get("product_id", "unknown")
 
     photo_path = take_photo()
-    
+
     pred_model_label = classifier.classify_image(photo_path)
     data = {
         "product_id": product_id,
         "weight": str(round(current_weight, 1)),
-        "pred_model_label": pred_model_label
+        "pred_model_label": pred_model_label,
     }
     print(data)
 
@@ -118,10 +119,7 @@ async def get_products():
 
 
 # --- SCALE READING THREAD ---
-def run_scale(
-    x0: int = -837_500,
-    x1: int = 84_500
-) -> None:
+def run_scale(x0: int = -837_500, x1: int = 84_500) -> None:
     mw = 500
 
     global hx
@@ -154,22 +152,40 @@ async def latest_photo():
         raise HTTPException(status_code=404, detail="Image not found")
 
 
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # Connect to a dummy address; the OS chooses the correct local IP
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+    finally:
+        s.close()
+    return ip
+
+
 def register():
     global API_KEY
 
     # Try to load saved API key
-    if os.path.exists(API_KEY_FILE):
-        with open(API_KEY_FILE, "r") as f:
-            API_KEY = f.read().strip()
-        print("Loaded API key from file.")
-        return
+    # if os.path.exists(API_KEY_FILE):
+    #     with open(API_KEY_FILE, "r") as f:
+    #         API_KEY = f.read().strip()
+    #     print("Loaded API key from file.")
+    #     return
 
     print("Registering device...")
+    device_ip = get_local_ip()
+    
     r = requests.post(
         f"{MAIN_SERVER_URL}/register_device",
-        data={"device_name": DEVICE_NAME, "shared_secret": SHARED_SECRET},
+        data={
+            "device_name": DEVICE_NAME,
+            "shared_secret": SHARED_SECRET,
+            "address": f"http:{device_ip}:8000",
+        },
         verify=MAIN_SERVER_CERT,
     )
+
     r.raise_for_status()
     data = r.json()
     print("Registered. Device ID:", data["device_id"])
@@ -224,6 +240,14 @@ def update_model():
     except Exception as e:
         print("Model update failed:", e)
 
+
+@app.post("/update_model")
+async def trigger_model_update():
+    try:
+        update_model()
+        return {"status": "ok", "message": "Model updated"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 # --- START SCALE THREAD ---
